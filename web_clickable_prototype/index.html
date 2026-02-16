@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft Product Activation Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app" class="app-container"></div>
+
+    <script>
+        // State management
+        const AppState = {
+            current: 'S1',
+            computersCount: null,
+            confirmationId: null,
+            captchaStarted: false,
+            activationResult: null
+        };
+
+        // Generate random confirmation ID
+        function generateConfirmationId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let id = '';
+            const groups = [6, 7, 7, 6, 6, 6, 6, 6, 6];
+            
+            for (let g = 0; g < groups.length; g++) {
+                if (g > 0) id += ' ';
+                for (let i = 0; i < groups[g]; i++) {
+                    id += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+            }
+            return id;
+        }
+
+        // Screen components
+        const screens = {
+            S1: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header settings-header">
+                            <div class="settings-nav">Settings > System > About</div>
+                        </div>
+                        <div class="content settings-content">
+                            <div class="settings-layout">
+                                <div class="settings-sidebar">
+                                    <div class="settings-menu">
+                                        <div class="menu-item">System</div>
+                                        <div class="menu-item">Bluetooth & devices</div>
+                                        <div class="menu-item">Network & internet</div>
+                                        <div class="menu-item">Personalization</div>
+                                        <div class="menu-item">Apps</div>
+                                        <div class="menu-item">Accounts</div>
+                                    </div>
+                                </div>
+                                <div class="settings-main">
+                                    <h1>About</h1>
+                                    <div class="about-section">
+                                        <div class="info-group">
+                                            <label>Device name</label>
+                                            <span class="info-value">DESKTOP-USER</span>
+                                        </div>
+                                        <div class="info-group">
+                                            <label>Processor</label>
+                                            <span class="info-value">Intel(R) Core(TM) i7-10700K</span>
+                                        </div>
+                                        <div class="info-group">
+                                            <label>Installed RAM</label>
+                                            <span class="info-value">16.0 GB</span>
+                                        </div>
+                                        <div class="info-group">
+                                            <label>System type</label>
+                                            <span class="info-value">64-bit operating system</span>
+                                        </div>
+                                    </div>
+                                    <div class="activation-status-card">
+                                        <div class="status-header">
+                                            <div class="status-icon">ⓘ</div>
+                                            <div class="status-text">
+                                                <p><strong>Windows 11 is not activated</strong></p>
+                                                <p>Activate Windows now to unlock the full potential of your device.</p>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-primary" onclick="navigate('S2_1')">Automated help</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S2_1: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Support</div>
+                            <div class="nav-breadcrumb">User Experience | Product Activation Portal</div>
+                        </div>
+                        <div class="content">
+                            <div class="portal-container">
+                                <h1>Welcome to Microsoft Product Activation Portal!</h1>
+                                <div class="portal-content">
+                                    <p>You're just a few steps away from activating your Microsoft product. Whether you're a home user, business professional, or trusted partner, this portal is designed to guide you through the process quickly and easily.</p>
+                                    <p>Volume License customers can also access support through this portal to help locate Volume License keys or increase MAK activation limits.</p>
+                                    <p><strong>Sign in so we can get you the right help and support.</strong></p>
+                                </div>
+                                <button class="btn btn-primary btn-large" onclick="navigate('S2_2')">Let's Get Started</button>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S2_2: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Support</div>
+                            <div class="nav-breadcrumb">Security Verification</div>
+                        </div>
+                        <div class="content">
+                            <div class="verification-container">
+                                <h1>Security Verification</h1>
+                                <p class="subtitle">Please solve a puzzle so we know you're not a bot.</p>
+                                
+                                ${!AppState.captchaStarted ? `
+                                    <button class="btn btn-primary" onclick="startCaptcha()">Start</button>
+                                ` : `
+                                    <div class="captcha-area">
+                                        <div class="puzzle-demo">
+                                            <p><strong>Puzzle:</strong> Click on all the traffic lights</p>
+                                            <div class="puzzle-grid" style="margin: 20px 0; display: grid; grid-template-columns: repeat(3, 100px); gap: 10px;">
+                                                <div style="width: 100px; height: 100px; background: #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">🚦</div>
+                                                <div style="width: 100px; height: 100px; background: #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">🚗</div>
+                                                <div style="width: 100px; height: 100px; background: #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">🚦</div>
+                                                <div style="width: 100px; height: 100px; background: #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">🚲</div>
+                                                <div style="width: 100px; height: 100px; background: #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">🚦</div>
+                                                <div style="width: 100px; height: 100px; background: #ccc; border-radius: 8px; display: flex; align-items: center; justify-content: center;">🏠</div>
+                                            </div>
+                                            <p style="font-size: 13px; color: #666;">For demo purposes, puzzle validation is skipped</p>
+                                        </div>
+                                        <button class="btn btn-primary" onclick="navigate('S2_3')">Submit</button>
+                                    </div>
+                                `}
+                                <p class="help-text"><a href="#">Switch to audio puzzle</a></p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S2_3: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Support</div>
+                            <div class="nav-breadcrumb">Sign In</div>
+                        </div>
+                        <div class="content">
+                            <div class="signin-container">
+                                <h1>Welcome to Microsoft Product Activation Portal!</h1>
+                                <div class="signin-content">
+                                    <div class="account-type-info">
+                                        <p><strong>Sign in with your account</strong></p>
+                                        <p>Sign in using your email or mobile number associated with you or your business.</p>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label><strong>Government Tenants:</strong></label>
+                                        <p style="font-size: 14px; margin: 8px 0;">If you have an Azure Government tenant, choose from the dropdown first.</p>
+                                        <select class="form-control">
+                                            <option>Select your Government Tenant</option>
+                                            <option>Azure Government</option>
+                                            <option>Azure US Government</option>
+                                        </select>
+                                    </div>
+
+                                    <p class="note">By logging in with your account, it will not associate the account to the licenses.</p>
+                                    
+                                    <button class="btn btn-primary btn-large" onclick="navigate('S3_1')">Proceed to Sign In</button>
+                                    <p class="help-link" style="margin-top: 20px;"><a href="#">Can't sign-in?</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S3_1: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Product Activation</div>
+                            <div class="nav-breadcrumb">Windows 11 | Microsoft Product Activation</div>
+                        </div>
+                        <div class="content">
+                            <div class="activation-question">
+                                <h1>How many computers have you installed this copy of the software on?</h1>
+                                <div class="form-group">
+                                    <input type="number" id="computersInput" class="form-control" placeholder="Enter number of computers" min="0">
+                                </div>
+                                <button class="btn btn-primary" onclick="submitComputersCount()">Submit</button>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S3_2: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Product Activation</div>
+                            <div class="nav-breadcrumb">Windows 11 | Microsoft Product Activation</div>
+                        </div>
+                        <div class="content">
+                            <div class="confirmation-container">
+                                <div class="success-badge">✓ Success!</div>
+                                <h1>Your Confirmation ID</h1>
+                                <p>To complete the activation process, enter this confirmation ID into the activation window on your computer and click 'next' or 'activate'. Save this number for future reference.</p>
+                                
+                                <div class="confirmation-id-display">
+                                    <label>Confirmation ID</label>
+                                    <div class="id-value">${AppState.confirmationId}</div>
+                                    <button class="btn btn-secondary btn-small" onclick="copyToClipboard()">📋 Copy Confirmation ID</button>
+                                </div>
+
+                                <div class="additional-actions">
+                                    <button class="btn btn-secondary btn-small">📸 Take a screenshot</button>
+                                </div>
+
+                                <button class="btn btn-primary btn-large" onclick="navigate('S3_3')">Continue</button>
+                                
+                                <p class="footer-link"><a href="#">Privacy statement</a></p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S3_3: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Product Activation</div>
+                            <div class="nav-breadcrumb">Windows 11 | Microsoft Product Activation</div>
+                        </div>
+                        <div class="content">
+                            <div class="activation-result">
+                                <h1>Were you successful activating your product?</h1>
+                                <div class="result-options">
+                                    <button class="btn btn-option" onclick="setActivationResult('yes')">
+                                        <span class="option-icon">✓</span>
+                                        <span class="option-text">Yes</span>
+                                    </button>
+                                    <button class="btn btn-option" onclick="setActivationResult('no')">
+                                        <span class="option-icon">✗</span>
+                                        <span class="option-text">No</span>
+                                    </button>
+                                </div>
+                                <p class="footer-link"><a href="#">Privacy statement</a></p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            S3_4: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Product Activation</div>
+                            <div class="nav-breadcrumb">Windows 11 | Microsoft Product Activation</div>
+                        </div>
+                        <div class="content">
+                            <div class="support-contact">
+                                <h1>Contact Assisted Support</h1>
+                                <p>I can transfer you to a product activation support advocate, but you'll have to start the activation process again.</p>
+                                
+                                <div class="support-options">
+                                    <button class="btn btn-support" onclick="selectSupport('chat')">
+                                        <span class="support-icon">💬</span>
+                                        <span class="support-text">Resume chat with a support agent</span>
+                                    </button>
+                                    <button class="btn btn-support" onclick="selectSupport('phone')">
+                                        <span class="support-icon">📞</span>
+                                        <span class="support-text">Call support</span>
+                                    </button>
+                                </div>
+
+                                <button class="btn btn-secondary" onclick="navigate('S1')">Exit</button>
+                                <p class="footer-link"><a href="#">Privacy statement</a></p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            OUTSIDE_THRESHOLD: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Product Activation</div>
+                            <div class="nav-breadcrumb">Windows 11 | Microsoft Product Activation</div>
+                        </div>
+                        <div class="content">
+                            <div class="threshold-warning">
+                                <div class="warning-icon">⚠️</div>
+                                <h1>Installation Threshold Exceeded</h1>
+                                <p>You've indicated this software has been installed on more computers than allowed by the license agreement (threshold: 1 computer).</p>
+                                <p>You may qualify for a Volume License agreement or additional licenses. Please contact support.</p>
+                                <button class="btn btn-primary" onclick="navigate('S3_4')">Contact Support</button>
+                                <button class="btn btn-secondary" onclick="navigate('S3_1')">Go Back</button>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+
+            SUCCESS: {
+                render: () => `
+                    <div class="screen">
+                        <div class="header">
+                            <div class="brand">Microsoft Product Activation</div>
+                            <div class="nav-breadcrumb">Windows 11 | Microsoft Product Activation</div>
+                        </div>
+                        <div class="content">
+                            <div class="success-screen">
+                                <div class="success-badge large">✓</div>
+                                <h1>Activation Successful!</h1>
+                                <p>Your Windows 11 product has been successfully activated.</p>
+                                <button class="btn btn-primary" onclick="navigate('S1')">Return to Settings</button>
+                            </div>
+                        </div>
+                    </div>
+                `
+            }
+        };
+
+        // Navigation function
+        function navigate(screen) {
+            AppState.current = screen;
+            render();
+        }
+
+        // Submit computers count
+        function submitComputersCount() {
+            const input = document.getElementById('computersInput');
+            const value = parseInt(input.value);
+
+            if (isNaN(value) || value < 0) {
+                alert('Please enter a valid number');
+                return;
+            }
+
+            AppState.computersCount = value;
+
+            if (value > 1) {
+                navigate('OUTSIDE_THRESHOLD');
+            } else {
+                if (!AppState.confirmationId) {
+                    AppState.confirmationId = generateConfirmationId();
+                }
+                navigate('S3_2');
+            }
+        }
+
+        // Set activation result
+        function setActivationResult(result) {
+            AppState.activationResult = result;
+            if (result === 'yes') {
+                navigate('SUCCESS');
+            } else {
+                navigate('S3_4');
+            }
+        }
+
+        // Select support method
+        function selectSupport(method) {
+            alert(`Demo: ${method === 'chat' ? 'Chat support selected' : 'Phone support selected'} - would initiate real support handoff here.`);
+        }
+
+        // Start captcha
+        function startCaptcha() {
+            AppState.captchaStarted = true;
+            render();
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            navigator.clipboard.writeText(AppState.confirmationId).then(() => {
+                alert('Confirmation ID copied to clipboard!');
+            });
+        }
+
+        // Render the app
+        function render() {
+            const app = document.getElementById('app');
+            const screen = screens[AppState.current];
+            if (screen) {
+                app.innerHTML = screen.render();
+            }
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
